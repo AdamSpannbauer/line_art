@@ -172,8 +172,8 @@ if __name__ == '__main__':
     import imutils
 
     use_mask = True
-    # mask_path = 'images/hourglass_mask.jpg'
-    mask_path = 'images/scream.png'
+    mask_path = 'images/hourglass_mask.jpg'
+    # mask_path = 'images/scream.png'
 
     mask = cv2.imread(mask_path)
     mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
@@ -184,8 +184,8 @@ if __name__ == '__main__':
     canvas = np.ones(canvas_size) * canvas_color
     canvas = canvas.astype('uint8')
 
-    mask = imutils.resize(mask, width=300)
-    canvas = imutils.resize(canvas, width=300)
+    mask = imutils.resize(mask, width=500)
+    canvas = imutils.resize(canvas, width=500)
 
     # Modified random walk:
     #   * Don't draw where not blank
@@ -194,4 +194,7 @@ if __name__ == '__main__':
     if not use_mask:
         mask = None
 
-    draw_random_walk(canvas, n_starts=50, n_restarts=500, mask=mask)
+    draw_random_walk(canvas,
+                     n_starts=50, n_restarts=500,
+                     mask=mask,
+                     output='black_white.avi')

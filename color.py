@@ -61,11 +61,11 @@ if __name__ == '__main__':
     from rand_walk_draw import draw_random_walk
 
     img = cv2.imread('images/py_pandas_2.png')
-    img = imutils.resize(img, width=400)
+    img = imutils.resize(img, width=600)
 
     canvas_size = img.shape
 
-    canvas_color = (100, 100, 100)
+    canvas_color = (200, 200, 200)
     canvas = np.ones(canvas_size) * canvas_color
     canvas = canvas.astype('uint8')
 
@@ -74,4 +74,4 @@ if __name__ == '__main__':
     draw_random_walk(canvas, canvas_color=canvas_color,
                      n_starts=50, n_restarts=1000,
                      mask=mask, color_mask=color_mask,
-                     output='output.avi')
+                     output='color.avi')
