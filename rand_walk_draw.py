@@ -1,28 +1,19 @@
 import numpy as np
 import cv2
 
-# # BGR
-# canvas_size = (400, 400, 3)
-# canvas_color = (255, 255, 255)
-# draw_color = (0, 0, 0)
-
-# GRAYSCALE
-canvas_size = (400, 400)
-canvas_color = 255
-draw_color = 0
-
-canvas = np.ones(canvas_size) * canvas_color
-canvas = canvas.astype('uint8')
-
 
 def weight_step(canvas, canvas_color, location, lo_weight=0.3):
     """Weight random walk to step towards the most blank areas of the canvas
 
-    :param canvas:
-    :param canvas_color:
-    :param location:
-    :param lo_weight:
-    :return:
+    :param canvas: np.array that is the drawing canvas
+    :param canvas_color: starting color of canvas
+    :param location: (y, x) location where to take step from
+    :param lo_weight: the step direction has 3 options [-1, 0, 1].
+                      * (1 - 2 * lo_weight) will be assigned as the weight to the x/y steps that
+                        walk towards to the most blank areas
+                      * lo_weight will be assigned to the other 2 options
+
+    :return: px, py; where px/py can be passed to np.random.choice's p arg
     """
     loc_y, loc_x = location
 
@@ -110,31 +101,46 @@ def start_loc(canvas, canvas_color):
     return loc
 
 
-if __name__ == '__main__':
-    # Modified random walk:
-    #   * Don't draw where not blank
-    #   * Weight randomness towards most blank areas
-    #   * Start in upper right
-    #   * If can't randomly take step to a blank pixel; randomly start somewhere else
-    n_starts = 100
-    locs = [start_loc(canvas, canvas_color) for _ in range(n_starts)]
+def draw_random_walk(canvas, canvas_color=255, draw_color=0, n_starts=100, n_restarts=200, mask=None):
+    if mask is not None:
+        masked_canvas = cv2.bitwise_and(canvas, canvas, mask=mask)
+    else:
+        masked_canvas = canvas
+
+    locs = [start_loc(masked_canvas, canvas_color) for _ in range(n_starts)]
     locs = list(set(locs))
 
     while True:
         cv2.imshow('Art... prolly', canvas)
-        cv2.waitKey(5)
+        key = cv2.waitKey(5)
+
+        if key == 27:
+            break
 
         new_locs = []
         for i, loc in enumerate(locs):
             draw_color_i = draw_color
 
             canvas[loc] = draw_color_i
+            masked_canvas[loc] = draw_color_i
 
-            loc = random_step(canvas, canvas_color, loc)
+            loc = random_step(masked_canvas, canvas_color, loc)
             if loc is not None:
                 new_locs.append(loc)
 
         locs = new_locs
+
+        if n_restarts > 0 and len(locs) < n_starts:
+            n_restart = n_starts - len(locs)
+            n_restarts -= n_restart
+
+            if mask is not None:
+                masked_canvas = cv2.bitwise_and(canvas, canvas, mask=mask)
+            else:
+                masked_canvas = canvas
+
+            restarts = [start_loc(masked_canvas, canvas_color) for _ in range(n_restart)]
+            locs += restarts
 
         if not locs:
             break
@@ -142,3 +148,33 @@ if __name__ == '__main__':
     cv2.destroyAllWindows()
     cv2.imshow('I give up...', canvas)
     cv2.waitKey(0)
+
+
+if __name__ == '__main__':
+    import imutils
+
+    use_mask = True
+    # mask_path = 'images/hourglass_mask.jpg'
+    mask_path = 'images/scream.png'
+
+    mask = cv2.imread(mask_path)
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    _, mask = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY_INV)
+
+    canvas_size = mask.shape[:2]
+    canvas_color = 255
+    canvas = np.ones(canvas_size) * canvas_color
+    canvas = canvas.astype('uint8')
+
+    mask = imutils.resize(mask, width=300)
+    canvas = imutils.resize(canvas, width=300)
+
+    # Modified random walk:
+    #   * Don't draw where not blank
+    #   * Weight randomness towards most blank areas
+    #   * Start in upper right
+    #   * If can't randomly take step to a blank pixel; randomly start somewhere else
+    if not use_mask:
+        mask = None
+
+    draw_random_walk(canvas, n_starts=50, n_restarts=500, mask=mask)
