@@ -101,7 +101,17 @@ def start_loc(canvas, canvas_color):
     return loc
 
 
-def draw_random_walk(canvas, canvas_color=255, draw_color=0, n_starts=100, n_restarts=200, mask=None):
+def draw_random_walk(canvas, canvas_color=255, draw_color=0,
+                     n_starts=100, n_restarts=200, mask=None, color_mask=None,
+                     output=None):
+    if output is not None:
+        h, w = canvas.shape[:2]
+        writer = cv2.VideoWriter(output,
+                                 cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),
+                                 30, (w, h), True)
+    else:
+        writer = None
+
     if mask is not None:
         masked_canvas = cv2.bitwise_and(canvas, canvas, mask=mask)
     else:
@@ -111,6 +121,8 @@ def draw_random_walk(canvas, canvas_color=255, draw_color=0, n_starts=100, n_res
     locs = list(set(locs))
 
     while True:
+        if writer is not None:
+            writer.write(canvas)
         cv2.imshow('Art... prolly', canvas)
         key = cv2.waitKey(5)
 
@@ -119,7 +131,10 @@ def draw_random_walk(canvas, canvas_color=255, draw_color=0, n_starts=100, n_res
 
         new_locs = []
         for i, loc in enumerate(locs):
-            draw_color_i = draw_color
+            if color_mask is not None:
+                draw_color_i = color_mask[loc]
+            else:
+                draw_color_i = draw_color
 
             canvas[loc] = draw_color_i
             masked_canvas[loc] = draw_color_i
@@ -144,6 +159,9 @@ def draw_random_walk(canvas, canvas_color=255, draw_color=0, n_starts=100, n_res
 
         if not locs:
             break
+
+    if writer is not None:
+        writer.release()
 
     cv2.destroyAllWindows()
     cv2.imshow('I give up...', canvas)
@@ -172,7 +190,6 @@ if __name__ == '__main__':
     # Modified random walk:
     #   * Don't draw where not blank
     #   * Weight randomness towards most blank areas
-    #   * Start in upper right
     #   * If can't randomly take step to a blank pixel; randomly start somewhere else
     if not use_mask:
         mask = None
